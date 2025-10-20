@@ -12,11 +12,11 @@ Features:
 - An item that is given to the player to access the GUI or /wm command as well anytime.
     - The item can be crafted as follows if lost.
 
- [_____][Stone][_____]
+ [Blank][Stone][Blank]
  
- [Stone][ Wood][Stone]
+ [Stone][Wood][Stone]
  
- [_____][Stone][_____]
+ [Blank][Stone][Blank]
 
 Commands:
 - /wm — Opens the Wave Matrix music player GUI  
