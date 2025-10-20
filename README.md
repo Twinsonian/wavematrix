@@ -13,7 +13,9 @@ Features:
     - The item can be crafted as follows if lost.
 
  [Stone][     ][Stone]
+ 
  [     ][ Wood][     ]
+ 
  [Stone][     ][Stone]
 
 Commands:
