@@ -1,4 +1,4 @@
-The Wave Matrix is an ambient and immersive music mod for Minetest.
+The Wave Matrix is an ambient and immersive music mod for Luanti.
 
 Compatible with: Mineclonia and minetest_game
 
