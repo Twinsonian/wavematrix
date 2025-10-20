@@ -9,6 +9,12 @@ Features:
 - Supports playback modes: Shuffle, Loop, and Play in Order  
 - Any track can be selected and played manually at any time  
 - Volume adjustment available via GUI (default: 30%)
+- An item that is given to the player to access the GUI or /wm command as well anytime.
+    - The item can be crafted as follows if lost.
+
+ [Stone][     ][Stone]
+ [     ][ Wood][     ]
+ [Stone][     ][Stone]
 
 Commands:
 - /wm — Opens the Wave Matrix music player GUI  
