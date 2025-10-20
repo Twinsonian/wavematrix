@@ -24,7 +24,6 @@ Commands:
 
 Notes on Luanti Limitations:
 - Volume cannot be adjusted dynamically while a track is playing; changing volume will restart the current track with the new setting  
-- Luanti currently lacks APIs to audit sound playback status or duration  
-- This limitation has been creatively addressed by introducing randomized delays between tracks for a more ambient experience  
-- Future updates may include more sound hooks and configuration options as Luanti evolves
+- Luanti currently lacks APIs to audit sound playback status or duration. This limitation has been addressed by introducing randomized delays between tracks for a more ambient experience  
+- Future updates may include more sound hooks and configuration options as Luanti evolves.
 
