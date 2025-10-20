@@ -9,6 +9,8 @@ local active_huds = {}
 local delay_active = false
 local delay_duration = 0
 local delay_elapsed = 0
+local selected_track_index = {}
+
 
 -- Load and sort music files
 local function load_tracks()
@@ -19,8 +21,13 @@ local function load_tracks()
             table.insert(tracks, name)
         end
     end
-    table.sort(tracks)
+    table.sort(tracks, function(a, b)
+        local num_a = tonumber(a:match("%d+")) or 0
+        local num_b = tonumber(b:match("%d+")) or 0
+        return num_a < num_b
+    end)
 end
+
 
 -- HUD notification
 local function notify(player, text)
@@ -158,23 +165,24 @@ minetest.register_on_joinplayer(function(player)
 end)
 
 -- GUI command
+-- GUI command
 minetest.register_chatcommand("wm", {
     description = "Open Wave Matrix music player",
     func = function(name)
         load_tracks()
-        local track_list = table.concat(tracks, ",")
         minetest.show_formspec(name, "wavematrix:player",
-            "size[8,6]" ..
+            "size[8,9]" ..
             "label[2.75,0;Wave Matrix Music Player]" ..
-            "dropdown[0.5,1;7;track;" .. track_list .. ";1]" ..
-            "button[2.35,2;1.5,1;play;Play]" ..
-            "button[3.85,2;1.5,1;stop;Stop]" ..
-            "label[0.5,3.2;Playback Mode:]" ..
-            "dropdown[0.5,3.7;4;mode;play in order,loop,shuffle;" ..
+            "textlist[0.5,1;7,4;tracklist;" .. table.concat(tracks, ",") .. "]" ..
+            "button[1.75,5.2;1.5,1;play;Play]" ..
+            "button[3.25,5.2;1.5,1;stop;Stop]" ..
+            "button[4.75,5.2;2,1;playrandom;Play Random]" ..
+            "label[0.5,6.4;Playback Mode:]" ..
+            "dropdown[0.5,6.9;4;mode;play in order,loop,shuffle;" ..
                 (playback_mode == "order" and "1" or playback_mode == "loop" and "2" or "3") .. "]" ..
-            "label[0.5,4.5;Volume:]" ..
-            "dropdown[0.5,5;4;volume;10,20,30,40,50,60,70,80,90,100;" .. math.floor(music_volume * 10) .. "]" ..
-            "button[5,5;2,1;setvol;Set Volume]"
+            "label[0.5,7.7;Volume:]" ..
+            "dropdown[0.5,8.2;4;volume;10,20,30,40,50,60,70,80,90,100;" .. math.floor(music_volume * 10) .. "]" ..
+            "button[5,8.2;2,1;setvol;Set Volume]"
         )
     end
 })
@@ -184,15 +192,28 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
     if formname ~= "wavematrix:player" then return end
     local name = player:get_player_name()
 
-    if fields.track then
-        current_track = fields.track
+    if fields.tracklist then
+        local event = minetest.explode_textlist_event(fields.tracklist)
+        if event.type == "CHG" or event.type == "DCL" then
+            selected_track_index[name] = event.index
+        end
     end
+
+
     if fields.play then
-        if playback_mode == "shuffle" then
+        local index = selected_track_index[name]
+        if index and tracks[index] then
+            current_track = tracks[index]
+        elseif playback_mode == "shuffle" then
             current_track = tracks[math.random(#tracks)]
         elseif playback_mode == "order" and not current_track then
             current_track = tracks[1]
         end
+        play_track(current_track, player)
+    end
+
+    if fields.playrandom then
+        current_track = tracks[math.random(#tracks)]
         play_track(current_track, player)
     end
     if fields.stop then
@@ -215,8 +236,8 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
             minetest.chat_send_player(name, "Invalid volume. Choose between 10 and 100.")
         end
     end
-
 end)
+
 
 -- Debug command
 minetest.register_chatcommand("wmdebug", {
