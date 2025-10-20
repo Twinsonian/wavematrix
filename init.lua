@@ -6,9 +6,9 @@ local playing = false
 local playback_mode = "shuffle"
 local music_volume = 0.3 -- default to 30%
 local active_huds = {}
-local delay_active = false
-local delay_duration = 0
-local delay_elapsed = 0
+local delay_timer = 0
+local delay_threshold = 0
+local delay_waiting = false
 local selected_track_index = {}
 
 
@@ -55,6 +55,12 @@ local function notify(player, text)
     end)
 end
 
+local function start_delay(initial_elapsed)
+    delay_timer = initial_elapsed or 0
+    delay_threshold = math.random(300, 420)
+    delay_waiting = true
+end
+
 -- Play a track
 local function play_track(name, player)
     if handle then
@@ -63,6 +69,9 @@ local function play_track(name, player)
     handle = minetest.sound_play(name, {gain = music_volume})
     current_track = name
     playing = true
+
+    -- Reset delay
+    start_delay(0)
 
     local suffix = ""
     if playback_mode == "loop" then
@@ -73,6 +82,7 @@ local function play_track(name, player)
     notify(player, "Playing: " .. name .. suffix)
 end
 
+
 -- Stop playback
 local function stop_track(player)
     if handle then
@@ -80,11 +90,12 @@ local function stop_track(player)
         handle = nil
     end
     playing = false
-    delay_active = false
-    delay_duration = 0
-    delay_elapsed = 0
+    delay_waiting = false
+    delay_timer = 0
+    delay_threshold = 0
     notify(player, "Stopped")
 end
+
 
 -- Get next track in order
 local function get_next_track()
@@ -95,29 +106,6 @@ local function get_next_track()
         end
     end
     return tracks[1]
-end
-
--- Delay before next track
-local function delayed_next(player, elapsed_override)
-    if delay_active or not playing then return end
-    delay_active = true
-    delay_duration = math.random(300, 420)
-    delay_elapsed = elapsed_override or 0
-    minetest.after(delay_duration - delay_elapsed, function()
-        delay_active = false
-        delay_duration = 0
-        delay_elapsed = 0
-        if not playing then return end
-        local next_track = current_track
-        if playback_mode == "shuffle" then
-            next_track = tracks[math.random(#tracks)]
-        elseif playback_mode == "loop" then
-            -- keep current_track
-        else
-            next_track = get_next_track()
-        end
-        play_track(next_track, player)
-    end)
 end
 
 -- Register starter item
@@ -160,8 +148,12 @@ minetest.register_on_joinplayer(function(player)
     if not playing and #tracks > 0 then
         current_track = tracks[math.random(#tracks)]
         playing = true
-        delayed_next(player, 270) -- simulate initial delay
+
+        -- Simulate partial delay so first song plays soon
+        start_delay(270)
     end
+
+
 end)
 
 -- GUI command
@@ -212,10 +204,15 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
         play_track(current_track, player)
     end
 
+
+
     if fields.playrandom then
         current_track = tracks[math.random(#tracks)]
         play_track(current_track, player)
     end
+
+
+
     if fields.stop then
         stop_track(player)
     end
@@ -244,10 +241,10 @@ minetest.register_chatcommand("wmdebug", {
     description = "Show time remaining until next track",
     func = function(name)
         local message
-        if not delay_active then
+        if not delay_waiting then
             message = "No delay active. Music may be stopped or just started."
         else
-            local remaining = delay_duration - delay_elapsed
+            local remaining = math.floor(delay_threshold - delay_timer)
             message = "Time remaining until next track: " .. remaining .. " seconds"
         end
         minetest.chat_send_player(name, message)
@@ -255,20 +252,29 @@ minetest.register_chatcommand("wmdebug", {
     end
 })
 
+
 -- Globalstep to track delay time
-local timer = 0
 minetest.register_globalstep(function(dtime)
-    timer = timer + dtime
-    if timer >= 1 then
-        timer = 0
-        if delay_active then
-            delay_elapsed = delay_elapsed + 1
-        end
-        for _, player in ipairs(minetest.get_connected_players()) do
-            if playing then
-                delayed_next(player)
+    if delay_waiting and playing then
+        delay_timer = delay_timer + dtime
+        if delay_timer >= delay_threshold then
+            for _, player in ipairs(minetest.get_connected_players()) do
+                local next_track = current_track
+                if playback_mode == "shuffle" then
+                    next_track = tracks[math.random(#tracks)]
+                elseif playback_mode == "loop" then
+                    -- keep current_track
+                else
+                    next_track = get_next_track()
+                end
+                play_track(next_track, player)
             end
+
+            -- Start new delay cycle after track plays
+            start_delay(0)
         end
     end
 end)
+
+
 
